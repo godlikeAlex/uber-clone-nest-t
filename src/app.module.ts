@@ -21,7 +21,8 @@ import { User } from './users/entities/user.entity';
         DB_PORT: Joi.string().required(),
         DB_USERNAME: Joi.string().required(),
         DB_PASSWORD: Joi.string().required(),
-        DB_DATABASENAME: Joi.string().required()
+        DB_DATABASENAME: Joi.string().required(),
+        JWT_SECREET: Joi.string().required()
       })
     }),
     TypeOrmModule.forRoot({
