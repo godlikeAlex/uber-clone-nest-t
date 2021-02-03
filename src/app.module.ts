@@ -8,6 +8,7 @@ import { RestaurantsModule } from './restaurants/restaurants.module';
 import { Restaurant } from './restaurants/entities/restaurant.entity';
 import { UsersModule } from './users/users.module';
 import { User } from './users/entities/user.entity';
+import { JwtModule } from './jwt/jwt.module';
 
 @Module({
   imports: [
@@ -39,8 +40,11 @@ import { User } from './users/entities/user.entity';
     GraphQLModule.forRoot({
       autoSchemaFile: true
     }),
+    JwtModule.forRoot({
+      privateKey: process.env.JWT_SECREET
+    }),
     UsersModule,
-    CommonModule
+    CommonModule,
   ],
   controllers: [],
   providers: [],
