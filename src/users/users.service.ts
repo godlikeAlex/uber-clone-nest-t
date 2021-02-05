@@ -1,3 +1,4 @@
+import { EditProfileInput } from './dtos/edit-profile.dto';
 import { JwtService } from './../jwt/jwt.service';
 import { ConfigService } from '@nestjs/config';
 import { Injectable } from "@nestjs/common";
@@ -48,5 +49,9 @@ export class UsersService {
 
   async findOne(id: number): Promise<User> {
     return this.users.findOne({ id });
+  }
+
+  async editProfile(id: number, editProfileInput: EditProfileInput) {
+    return this.users.update({id}, {...editProfileInput});
   }
 }
