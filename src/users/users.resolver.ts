@@ -1,3 +1,4 @@
+import { UserProfileInput, UserProfileOutput } from './dtos/user-profile.dto';
 import { AuthGuards } from './../auth/auth.guard';
 import { CreateAccountOutPut, CreateAccountInput } from './dtos/create-user.dto';
 import { UsersService } from './users.service';
@@ -46,5 +47,24 @@ export class UsersResolver {
     @AuthUser() user: User
   ) {
     return user;
+  }
+
+  @Query(returns => UserProfileOutput)
+  async userProfile(
+    @Args() {userId}: UserProfileInput
+  ): Promise<UserProfileOutput> {
+    try {
+      const user = await this.usersService.findOne(userId);
+      
+      if (!user) throw Error('User not found');
+
+      return {
+        ok: true,
+        error: null,
+        user,
+      }
+    } catch (error) {
+      return {ok: false, error};
+    }
   }
 }
