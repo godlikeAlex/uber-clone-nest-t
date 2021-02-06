@@ -1,17 +1,15 @@
-import { Verification } from './users/entities/verification.entity';
-import { JwtMiddleware } from './jwt/jwt.middleware';
-import { CommonModule } from './common/common.module';
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import * as Joi from 'joi';
 import { ConfigModule } from '@nestjs/config';
 import { GraphQLModule } from '@nestjs/graphql';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { RestaurantsModule } from './restaurants/restaurants.module';
-import { Restaurant } from './restaurants/entities/restaurant.entity';
 import { UsersModule } from './users/users.module';
 import { User } from './users/entities/user.entity';
 import { JwtModule } from './jwt/jwt.module';
 import { AuthModule } from './auth/auth.module';
+import { Verification } from './users/entities/verification.entity';
+import { JwtMiddleware } from './jwt/jwt.middleware';
+import { CommonModule } from './common/common.module';
 
 @Module({
   imports: [
