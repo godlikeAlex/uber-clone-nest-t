@@ -8,6 +8,7 @@ import { User } from './entities/user.entity';
 import { LoginInput, LoginOutput } from './dtos/login.dto';
 import { UseGuards } from '@nestjs/common';
 import { AuthUser } from 'src/auth/auth-user.decorator';
+import { VerifyInput, VerifyOutput } from './dtos/verify.dto';
 
 @Resolver(of => User)
 export class UsersResolver {
@@ -85,4 +86,22 @@ export class UsersResolver {
       return {ok: false, error}
     }
   }
+
+  @Mutation(returns => VerifyOutput)
+  async verifyEmail(
+    @Args('input') verifyInput: VerifyInput
+  ): Promise<VerifyOutput> {
+    try {
+      await this.usersService.verifyEmail(verifyInput.code);
+      return {
+        ok: true
+      }
+    } catch (error) {
+      return {
+        ok: false,
+        error
+      }
+    }
+  }
+
 }

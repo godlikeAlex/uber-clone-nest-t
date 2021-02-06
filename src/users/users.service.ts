@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
+import { Verification } from './entities/verification.entity';
 import { CreateAccountInput } from './dtos/create-user.dto';
 import { User } from "./entities/user.entity";
 import { LoginInput } from './dtos/login.dto';
@@ -12,6 +13,7 @@ import { LoginInput } from './dtos/login.dto';
 export class UsersService {
   constructor(
     @InjectRepository(User) private readonly users: Repository<User>,
+    @InjectRepository(Verification) private readonly verification: Repository<Verification>,
     private readonly configService: ConfigService,
     private readonly jwt: JwtService
   ) {}
@@ -22,7 +24,14 @@ export class UsersService {
       if(userExists) return [false, 'Account already exists.'];
 
       const user = this.users.create({email, password, role});
-      this.users.save(user);
+      await this.users.save(user);
+
+      await this.verification.save(
+        this.verification.create({
+          user
+        })
+      );
+
       return [true];
     } catch (error) {
       return [false, "Couldn't create user."];
@@ -55,8 +64,27 @@ export class UsersService {
     const user = await this.users.findOne(id);
 
     if (password) user.password = password; 
-    if (email) user.email = email; 
+    if (email) {
+      user.email = email;
+      await this.verification.save(
+        this.verification.create({
+          user
+        })
+      );
+    } 
 
     return this.users.save(user);
+  }
+
+  async verifyEmail(code: string): Promise<boolean> {
+    const verification = await this.verification.findOne({code}, {relations: ['user']});
+
+    if (verification) {
+      verification.user.verified = true;
+      this.users.save(verification.user);
+      return true;
+    }
+
+    return false;
   }
 }
