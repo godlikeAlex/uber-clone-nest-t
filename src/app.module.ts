@@ -1,3 +1,4 @@
+import { Verification } from './users/entities/verification.entity';
 import { JwtMiddleware } from './jwt/jwt.middleware';
 import { CommonModule } from './common/common.module';
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
@@ -37,7 +38,7 @@ import { AuthModule } from './auth/auth.module';
       database: process.env.DB_DATABASENAME,
       synchronize: process.env.NODE_ENV !== 'prod',
       logging: true,
-      entities: [User]
+      entities: [User, Verification]
     }),
     GraphQLModule.forRoot({
       autoSchemaFile: true,
