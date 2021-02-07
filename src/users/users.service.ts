@@ -1,13 +1,15 @@
-import { EditProfileInput } from './dtos/edit-profile.dto';
+import { UserProfileOutput } from './dtos/user-profile.dto';
+import { EditProfileInput, EditProfileOutput } from './dtos/edit-profile.dto';
 import { JwtService } from './../jwt/jwt.service';
 import { ConfigService } from '@nestjs/config';
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { Verification } from './entities/verification.entity';
-import { CreateAccountInput } from './dtos/create-user.dto';
+import { CreateAccountInput, CreateAccountOutPut } from './dtos/create-user.dto';
 import { User } from "./entities/user.entity";
-import { LoginInput } from './dtos/login.dto';
+import { LoginInput, LoginOutput } from './dtos/login.dto';
+import { VerifyOutput } from './dtos/verify.dto';
 
 @Injectable()
 export class UsersService {
@@ -18,10 +20,10 @@ export class UsersService {
     private readonly jwt: JwtService
   ) {}
 
-  async createAccount({email, password, role}: CreateAccountInput): Promise<[boolean, string?]> {
+  async createAccount({email, password, role}: CreateAccountInput): Promise<CreateAccountOutPut> {
     try {
       const userExists = await this.users.findOne({email});
-      if(userExists) return [false, 'Account already exists.'];
+      if(userExists) throw new Error('Account already exists.');
 
       const user = this.users.create({email, password, role});
       await this.users.save(user);
@@ -32,13 +34,13 @@ export class UsersService {
         })
       );
 
-      return [true];
+      return {ok: true};
     } catch (error) {
-      return [false, "Couldn't create user."];
+      return {ok: false, error};
     }
   }
 
-  async login({email, password}: LoginInput): Promise<{ok: boolean, error?: string, token?: string }> {
+  async login({email, password}: LoginInput): Promise<LoginOutput> {
     try {
       const user = await this.users.findOne({email}, {select: ['id', 'password']});
       if (!user) return {ok: false, error: `User with email: ${email} not found.`};
@@ -56,40 +58,52 @@ export class UsersService {
     }
   }
 
-  async findOne(id: number): Promise<User> {
-    return this.users.findOne({ id });
+  async findOne(id: number): Promise<UserProfileOutput> {
+    try {
+      const user = await this.users.findOne({ id });
+      if (!user) throw new Error('User not found');
+
+      return {ok: true, user};
+    } catch (error) {
+      return {ok: false, error};
+    }
   }
 
-  async editProfile(id: number, {password, email}: EditProfileInput): Promise<User> {
-    const user = await this.users.findOne(id);
+  async editProfile(id: number, {password, email}: EditProfileInput): Promise<EditProfileOutput> {
+    try {
+      const user = await this.users.findOne(id);
 
-    if (password) user.password = password; 
-    if (email) {
-      user.email = email;
-      await this.verification.save(
-        this.verification.create({
-          user
-        })
-      );
-    } 
-
-    return this.users.save(user);
+      if (password) user.password = password; 
+      if (email) {
+        user.email = email;
+        await this.verification.save(
+          this.verification.create({
+            user
+          })
+        );
+      } 
+  
+      await this.users.save(user);
+  
+      return {ok: true};
+    } catch (error) {
+      return {ok: false, error};
+    }
   }
 
-  async verifyEmail(code: string): Promise<boolean> {
+  async verifyEmail(code: string): Promise<VerifyOutput> {
     try {
       const verification = await this.verification.findOne({code}, {relations: ['user']});
 
       if (verification) {
         verification.user.verified = true;
         this.users.save(verification.user);
-        return true;
+        return {ok: true};
       }
   
-      return false;
+      return {ok: false};
     } catch (error) {
-      console.log(error);
-      return false;
+      return {ok: false, error};
     }
   }
 }
