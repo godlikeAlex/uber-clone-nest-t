@@ -10,6 +10,7 @@ import { CreateAccountInput, CreateAccountOutPut } from './dtos/create-user.dto'
 import { User } from "./entities/user.entity";
 import { LoginInput, LoginOutput } from './dtos/login.dto';
 import { VerifyOutput } from './dtos/verify.dto';
+import { MailService } from 'src/mail/mail.service';
 
 @Injectable()
 export class UsersService {
@@ -17,7 +18,8 @@ export class UsersService {
     @InjectRepository(User) private readonly users: Repository<User>,
     @InjectRepository(Verification) private readonly verification: Repository<Verification>,
     private readonly configService: ConfigService,
-    private readonly jwt: JwtService
+    private readonly jwt: JwtService,
+    private readonly mailService: MailService
   ) {}
 
   async createAccount({email, password, role}: CreateAccountInput): Promise<CreateAccountOutPut> {
@@ -28,11 +30,13 @@ export class UsersService {
       const user = this.users.create({email, password, role});
       await this.users.save(user);
 
-      await this.verification.save(
+      const verification = await this.verification.save(
         this.verification.create({
           user
         })
       );
+
+      this.mailService.sendVerificationEmail(user.email, verification.code);
 
       return {ok: true};
     } catch (error) {
@@ -76,11 +80,12 @@ export class UsersService {
       if (password) user.password = password; 
       if (email) {
         user.email = email;
-        await this.verification.save(
+        const verification = await this.verification.save(
           this.verification.create({
             user
           })
         );
+        this.mailService.sendVerificationEmail(user.email, verification.code);
       } 
   
       await this.users.save(user);
@@ -97,7 +102,8 @@ export class UsersService {
 
       if (verification) {
         verification.user.verified = true;
-        this.users.save(verification.user);
+        await this.users.save(verification.user);
+        await this.verification.delete(verification.id);
         return {ok: true};
       }
   
