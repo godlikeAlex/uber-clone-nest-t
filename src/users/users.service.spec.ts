@@ -208,6 +208,27 @@ describe('UsersService', () => {
 
       expect(mailService.sendVerificationEmail).toHaveBeenCalledWith(newUser.email, newVerefication.code);
     });
+
+    it('should change password', async () => {
+      const editProfileArgs = {
+        userId: 1,
+        input: {password: "new_password"},
+      };
+      userRepository.findOne.mockResolvedValue({password: 'old'});
+
+      const result = await service.editProfile(editProfileArgs.userId, editProfileArgs.input);
+
+      expect(userRepository.save).toHaveBeenCalledTimes(1);
+      expect(userRepository.save).toHaveBeenCalledWith(editProfileArgs.input);
+
+      expect(result).toEqual({ok: true});
+    });
+
+    it('should fail on exception', async () => {
+      userRepository.findOne.mockRejectedValue(new Error(''));
+      const result = await service.editProfile(1, {email: "222@gm.com"});
+      expect(result).toEqual({ok: false, error: 'Clound not update profile'});
+    });
   });
   it.todo('verifyEmail');
 });
