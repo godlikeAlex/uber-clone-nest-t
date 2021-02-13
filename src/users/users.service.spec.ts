@@ -10,6 +10,7 @@ import { getRepository, Repository } from 'typeorm';
 
 const mockRepository = () => ({
   findOne: jest.fn(),
+  findOneOrFail: jest.fn(),
   save: jest.fn(),
   delete: jest.fn(),
   create: jest.fn(),
@@ -159,7 +160,23 @@ describe('UsersService', () => {
       expect(result).toEqual({ok: true, token: "signed-token"})
     });
   });
-  it.todo('findOne');
+
+  describe('findOne', () => {
+    const findByIdArgs = {id: 1}
+    it('should find an existing user', async () => {
+      userRepository.findOneOrFail.mockResolvedValue(findByIdArgs);
+      const result = await service.findOne(findByIdArgs.id);
+
+      expect(result).toEqual({ok: true, user: findByIdArgs})
+    });
+
+    it('should fail if no user it found', async () => {
+      userRepository.findOneOrFail.mockRejectedValue(new Error());
+      const result = await service.findOne(1);
+
+      expect(result).toEqual({ ok: false, error: 'User Not Found' });
+    });
+  });
   it.todo('editProfile');
   it.todo('verifyEmail');
 });
