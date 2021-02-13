@@ -78,6 +78,7 @@ export class UsersService {
       if (password) user.password = password; 
       if (email) {
         user.email = email;
+        user.verified = false;
         const verification = await this.verification.save(
           this.verification.create({
             user

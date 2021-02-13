@@ -177,6 +177,37 @@ describe('UsersService', () => {
       expect(result).toEqual({ ok: false, error: 'User Not Found' });
     });
   });
-  it.todo('editProfile');
+
+  describe('editProfile', () => {
+    it("should change email", async () => {
+      const oldUser = {
+        email: "godlike@gm.com",
+        verified: true
+      };
+      const editProfileArgs = {
+        userId: 1,
+        input: {email: "yurkovksyy@gmail.com"},
+      }
+      const newVerefication = {
+        code: "code",
+      }
+      const newUser = {
+        verified: false,
+        email: editProfileArgs.input.email
+      };
+      userRepository.findOne.mockResolvedValue(oldUser);
+      verificationRepository.create.mockReturnValue(newVerefication);
+      verificationRepository.save.mockResolvedValue(newVerefication);
+
+      await service.editProfile(editProfileArgs.userId, editProfileArgs.input);
+      expect(userRepository.findOne).toHaveBeenCalledTimes(1);
+      expect(userRepository.findOne).toHaveBeenCalledWith(editProfileArgs.userId);
+
+      expect(verificationRepository.create).toHaveBeenCalledWith({user: newUser});
+      expect(verificationRepository.save).toHaveBeenCalledWith(newVerefication);
+
+      expect(mailService.sendVerificationEmail).toHaveBeenCalledWith(newUser.email, newVerefication.code);
+    });
+  });
   it.todo('verifyEmail');
 });
