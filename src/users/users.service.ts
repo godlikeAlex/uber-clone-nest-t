@@ -25,7 +25,7 @@ export class UsersService {
   async createAccount({email, password, role}: CreateAccountInput): Promise<CreateAccountOutPut> {
     try {
       const userExists = await this.users.findOne({email});
-      if(userExists) throw new Error('Account already exists.');
+      if(userExists) return {ok: false, error: 'Account already exists.'}
 
       const user = this.users.create({email, password, role});
       await this.users.save(user);
@@ -40,7 +40,7 @@ export class UsersService {
 
       return {ok: true};
     } catch (error) {
-      return {ok: false, error};
+      return {ok: false, error: "Couldn't create account"};
     }
   }
 
