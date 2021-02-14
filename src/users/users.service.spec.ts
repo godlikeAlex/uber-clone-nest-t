@@ -241,6 +241,7 @@ describe('UsersService', () => {
       expect(result).toEqual({ok: false, error: 'Clound not update profile'});
     });
   });
+  
   describe('verifyEmail', () => {
     it('should verify email', async () => {
       const mockedVerification = {user: {verified: false}, id: 1};
