@@ -58,7 +58,7 @@ export class UsersService {
       }
     } catch (error) {
       console.log(error);
-      return {ok: false, error};
+      return {ok: false, error: 'Cloud not login'};
     }
   }
 

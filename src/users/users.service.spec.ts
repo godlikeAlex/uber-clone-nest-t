@@ -160,6 +160,16 @@ describe('UsersService', () => {
       expect(jwtService.sign).toHaveBeenCalledWith(expect.any(Number));
       expect(result).toEqual({ok: true, token: "signed-token"})
     });
+
+    it('it should fail on exception', async () => {
+      userRepository.findOne.mockRejectedValue(new Error(''));
+
+      const result = await service.login(loginArgs);
+
+      expect(userRepository.findOne).toBeCalledTimes(1);
+
+      expect(result).toEqual({ok: false, error: 'Cloud not login'});
+    });
   });
 
   describe('findOne', () => {
