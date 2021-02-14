@@ -7,6 +7,7 @@ import { JwtService } from 'src/jwt/jwt.service';
 import { ConfigService } from '@nestjs/config';
 import { MailService } from 'src/mail/mail.service';
 import { getRepository, Repository } from 'typeorm';
+import { exception } from 'console';
 
 const mockRepository = () => ({
   findOne: jest.fn(),
@@ -16,14 +17,14 @@ const mockRepository = () => ({
   create: jest.fn(),
 });
 
-const mockJwtService = {
+const mockJwtService = () => ({
   sign: jest.fn(() => "signed-token"),
   verify: jest.fn()
-};
+});
 
-const mockMailService = {
+const mockMailService = () => ({
   sendVerificationEmail: jest.fn()
-};
+});
 
 type MockRepository<T = any> = Partial<Record<keyof Repository<T>, jest.Mock>>;
 
@@ -48,10 +49,10 @@ describe('UsersService', () => {
           provide: ConfigService, useValue: {get: jest.fn()}
         },
         {
-          provide: JwtService, useValue: mockJwtService
+          provide: JwtService, useValue: mockJwtService()
         },
         {
-          provide: MailService, useValue: mockMailService
+          provide: MailService, useValue: mockMailService()
         },
       ]
     }).compile();
@@ -230,5 +231,36 @@ describe('UsersService', () => {
       expect(result).toEqual({ok: false, error: 'Clound not update profile'});
     });
   });
-  it.todo('verifyEmail');
+  describe('verifyEmail', () => {
+    it('should verify email', async () => {
+      const mockedVerification = {user: {verified: false}, id: 1};
+      verificationRepository.findOne.mockResolvedValue(mockedVerification);
+
+      const result = await service.verifyEmail('');
+      expect(verificationRepository.findOne).toHaveBeenCalledTimes(1);
+      expect(verificationRepository.findOne).toHaveBeenCalledWith(expect.any(Object), expect.any(Object));
+      
+      expect(userRepository.save).toHaveBeenCalledTimes(1);
+      expect(userRepository.save).toHaveBeenCalledWith({verified: true});
+
+      expect(verificationRepository.delete).toHaveBeenCalledTimes(1);
+      expect(verificationRepository.delete).toHaveBeenCalledWith(mockedVerification.id);
+
+      expect(result).toEqual({ok: true});
+    });
+
+    it('it should fail on verification not found.', async () => {
+      verificationRepository.findOne.mockResolvedValueOnce(undefined);
+
+      const result = await service.verifyEmail('')
+      expect(result).toEqual({ok: false, error: "Verification not found."});
+    });
+
+    it('it should fail on exception', async () => {
+      verificationRepository.findOne.mockRejectedValue(new Error(''));
+
+      const result = await service.verifyEmail('')
+      expect(result).toEqual({ok: false, error: 'Cloud not verify email.'});
+    });
+  });
 });
