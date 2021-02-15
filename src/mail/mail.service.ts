@@ -1,4 +1,4 @@
-import {URLSearchParams as FormData} from 'url';
+import * as FormData from 'form-data'; // May-be doesn't work, need import url.
 import fetch from 'node-fetch';
 import { EmailVar, MailOptions } from './mail.interface';
 import { CONFIG_OPTIONS } from './../common/common.constants';
@@ -10,7 +10,7 @@ export class MailService {
     @Inject(CONFIG_OPTIONS) private readonly options: MailOptions
   ) {}
 
-  async sendEmail(subject: string, templateName: string, emailVars: EmailVar[]) {
+  async sendEmail(subject: string, templateName: string, emailVars: EmailVar[]): Promise<Boolean> {
     const form = new FormData();
     form.append('from', `Alexander from uber eats <mailgun@${this.options.domain}>`);
     form.append('to', `godlikedesigner@gmail.com`);
@@ -26,9 +26,10 @@ export class MailService {
           Authorization: `Basic ${Buffer.from(`api:${this.options.apikey}`).toString('base64')}`
         },
         body: form
-      })
+      });
+      return true;
     } catch (error) {
-      console.log(error);
+      return false;
     }
   }
 
