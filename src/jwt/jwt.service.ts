@@ -7,7 +7,9 @@ import { Inject, Injectable } from '@nestjs/common';
 export class JwtService {
   constructor(
     @Inject(CONFIG_OPTIONS) private readonly options: JWTOptions
-  ) {}
+  ) {
+    console.log(process.env.NODE_ENV);
+  }
 
   sign(userId: number): string {
     return jwt.sign({id: userId}, this.options.privateKey);
