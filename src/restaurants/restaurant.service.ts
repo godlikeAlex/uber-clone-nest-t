@@ -1,35 +1,49 @@
-import { UpdateRestaurantDto } from './dtos/update-restaurant-dto';
-import { CreateRestaurantDto } from './dtos/create-restaurant.dto';
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
+import { User } from "src/users/entities/user.entity";
 import { Repository } from "typeorm";
+import { CreateRestaurantInput, CreateRestaurantOutput } from "./dtos/create-restaurant.dto";
+import { Category } from "./entities/category.entity";
 import { Restaurant } from "./entities/restaurant.entity";
 
 @Injectable()
 export class RestaurantService {
   constructor(
     @InjectRepository(Restaurant)
-    private readonly restaurantRepository: Repository<Restaurant>
+    private readonly restaurantRepository: Repository<Restaurant>,
+    @InjectRepository(Category)
+    private readonly categoryRepository: Repository<Category>
   ) {}
 
-  create() {
-    console.log(true);
-  }
+  async createRestaurant(
+    owner: User,
+    createRestaurantInput: CreateRestaurantInput
+  ): Promise<CreateRestaurantOutput> {
+    try {
+      const newRestaurant = this.restaurantRepository.create({
+        ...createRestaurantInput, owner
+      });
 
-  findAll(): Promise<Restaurant[]> {
-    return this.restaurantRepository.find();
-  }
+      const categoryName = createRestaurantInput.categoryName.trim().toLowerCase();
+      const categorySlug = categoryName.replace(/ /g, '-');
+      let category = await this.categoryRepository.findOne({ slug: categorySlug });
 
-  createRestaurant(createRestaurantDto: CreateRestaurantDto): Promise<Restaurant> {
-    const newRestaurant = this.restaurantRepository.create(createRestaurantDto);
-    return this.restaurantRepository.save(newRestaurant);
-  }
+      if (!category) {
+        category = await this.categoryRepository.save(
+          this.categoryRepository.create({name: categoryName, slug: categorySlug})
+        );
+      }
+      
+      newRestaurant.category = category;
 
-  async updateRestaurant({id, data}: UpdateRestaurantDto) {
-    const restaurant = await this.restaurantRepository.findOne(id);
+      await this.restaurantRepository.save(newRestaurant);
 
-    if (!restaurant) throw new Error('Restaurant not found!');
-
-    return this.restaurantRepository.update(restaurant, {...data});
+      return {ok: true};
+    } catch (error) {
+      return {
+        ok: false,
+        error: 'Clould not create a restaurant'
+      }
+    }
   }
 }
