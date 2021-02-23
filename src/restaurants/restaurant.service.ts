@@ -1,3 +1,4 @@
+import { EditRestaurantInput, EditRestaurantOutput } from './dtos/edit-restaurant.dto';
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { User } from "src/users/entities/user.entity";
@@ -5,6 +6,7 @@ import { Repository } from "typeorm";
 import { CreateRestaurantInput, CreateRestaurantOutput } from "./dtos/create-restaurant.dto";
 import { Category } from "./entities/category.entity";
 import { Restaurant } from "./entities/restaurant.entity";
+import { CategoryRepository } from './repositories/category.repository';
 
 @Injectable()
 export class RestaurantService {
@@ -12,7 +14,7 @@ export class RestaurantService {
     @InjectRepository(Restaurant)
     private readonly restaurantRepository: Repository<Restaurant>,
     @InjectRepository(Category)
-    private readonly categoryRepository: Repository<Category>
+    private readonly categoryRepository: CategoryRepository
   ) {}
 
   async createRestaurant(
@@ -23,18 +25,10 @@ export class RestaurantService {
       const newRestaurant = this.restaurantRepository.create({
         ...createRestaurantInput, owner
       });
-
-      const categoryName = createRestaurantInput.categoryName.trim().toLowerCase();
-      const categorySlug = categoryName.replace(/ /g, '-');
-      let category = await this.categoryRepository.findOne({ slug: categorySlug });
-
-      if (!category) {
-        category = await this.categoryRepository.save(
-          this.categoryRepository.create({name: categoryName, slug: categorySlug})
-        );
-      }
-      
-      newRestaurant.category = category;
+     
+      newRestaurant.category = await this.categoryRepository.getOrCreate(
+        createRestaurantInput.categoryName
+      );
 
       await this.restaurantRepository.save(newRestaurant);
 
@@ -45,5 +39,37 @@ export class RestaurantService {
         error: 'Clould not create a restaurant'
       }
     }
+  }
+
+  async editRestaurant(
+    owner: User, 
+    editRestaurantInput: EditRestaurantInput
+  ): Promise<EditRestaurantOutput> {
+    try {
+      const restaurant = await this.restaurantRepository.findOne({id: editRestaurantInput.restaurantId});
+
+      if(!restaurant) return {ok: false, error: 'Restaurant not found.'};
+
+      if(owner.id !== restaurant.ownerId) {
+        return {ok: false, error: "You can't edit a restaurant that you don't onwer"}
+      }
+
+      let category: Category = null;
+      if (editRestaurantInput.categoryName) {
+        category = await this.categoryRepository.getOrCreate(editRestaurantInput.categoryName);
+      }
+
+      await this.restaurantRepository.save([{
+        id: editRestaurantInput.restaurantId,
+        ...editRestaurantInput,
+        ...(category && { category })
+      }]);
+
+      return {
+        ok: true
+      };
+    } catch (error) {
+      return {ok: false, error: 'Cloud not create restaurant'}
+    }  
   }
 }

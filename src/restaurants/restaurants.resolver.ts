@@ -5,6 +5,7 @@ import { CreateRestaurantInput, CreateRestaurantOutput } from './dtos/create-res
 import { AuthUser } from 'src/auth/auth-user.decorator';
 import { User } from 'src/users/entities/user.entity';
 import { Role } from 'src/auth/role.decorator';
+import { EditRestaurantOutput, EditRestaurantInput } from './dtos/edit-restaurant.dto';
 @Resolver(of => Restaurant)
 export class RestaurantResolver {
   constructor (
@@ -18,5 +19,14 @@ export class RestaurantResolver {
     @Args('input') createRestaurantInput: CreateRestaurantInput
   ): Promise<CreateRestaurantOutput> {
     return this.restaurantService.createRestaurant(authUser, createRestaurantInput);
+  }
+
+  @Role(['Owner'])
+  @Mutation(returns => EditRestaurantOutput)
+  async editRestaurant(
+    @AuthUser() owner: User,
+    @Args('input') editRestaurantInput: EditRestaurantInput
+  ): Promise<EditRestaurantOutput> {
+    return this.restaurantService.editRestaurant(owner, editRestaurantInput);
   }
 }
