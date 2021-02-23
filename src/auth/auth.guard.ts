@@ -6,7 +6,7 @@ import { User } from 'src/users/entities/user.entity';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
-  constructor(private readonly reflector: Reflector){}
+  constructor(private readonly reflector: Reflector) {}
   
   canActivate(ctx: ExecutionContext): boolean {
     const roles = this.reflector.get<AllowedRoles>(
@@ -18,7 +18,7 @@ export class AuthGuard implements CanActivate {
 
     const gqlCtx = GqlExecutionContext.create(ctx).getContext();
     const user: User = gqlCtx['user'];
-
+    
     if (!user) return false;
 
     if (roles.includes('Any')) return true;
