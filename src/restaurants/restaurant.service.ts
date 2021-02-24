@@ -1,3 +1,4 @@
+import { DeleteRestaurantInput, DeleteRestaurantOutput } from './dtos/delete-restaurant.dto';
 import { EditRestaurantInput, EditRestaurantOutput } from './dtos/edit-restaurant.dto';
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
@@ -7,6 +8,7 @@ import { CreateRestaurantInput, CreateRestaurantOutput } from "./dtos/create-res
 import { Category } from "./entities/category.entity";
 import { Restaurant } from "./entities/restaurant.entity";
 import { CategoryRepository } from './repositories/category.repository';
+import { CoreOutput } from 'src/common/dto/output.dto';
 
 @Injectable()
 export class RestaurantService {
@@ -46,13 +48,9 @@ export class RestaurantService {
     editRestaurantInput: EditRestaurantInput
   ): Promise<EditRestaurantOutput> {
     try {
-      const restaurant = await this.restaurantRepository.findOne({id: editRestaurantInput.restaurantId});
-
-      if(!restaurant) return {ok: false, error: 'Restaurant not found.'};
-
-      if(owner.id !== restaurant.ownerId) {
-        return {ok: false, error: "You can't edit a restaurant that you don't onwer"}
-      }
+      const verifyError = await this.getRestaurantIsItOwner(owner, editRestaurantInput.restaurantId);
+      
+      if (verifyError) return verifyError;
 
       let category: Category = null;
       if (editRestaurantInput.categoryName) {
@@ -71,5 +69,32 @@ export class RestaurantService {
     } catch (error) {
       return {ok: false, error: 'Cloud not create restaurant'}
     }  
+  }
+
+  async deleteRestaurant(
+    owner: User, 
+    {restaurantId}: DeleteRestaurantInput
+  ): Promise<DeleteRestaurantOutput> { 
+    try {
+      const verifyError = await this.getRestaurantIsItOwner(owner, restaurantId);
+      
+      if (verifyError) return verifyError;
+      
+      await this.restaurantRepository.delete(restaurantId);
+      
+      return {ok: true};
+    } catch (error) {
+      return {ok: false, error: 'Cloud not create a restaurant'}
+    }   
+  }
+
+  private async getRestaurantIsItOwner (owner, restaurantId: number): Promise<CoreOutput> {
+    const restaurant = await this.restaurantRepository.findOne({id: restaurantId});
+
+    if(!restaurant) return {ok: false, error: 'Restaurant not found.'};
+
+    if(owner.id !== restaurant.ownerId) {
+      return {ok: false, error: "You can't edit a restaurant that you don't onwer"}
+    }
   }
 }
