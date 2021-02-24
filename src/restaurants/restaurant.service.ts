@@ -9,6 +9,7 @@ import { Category } from "./entities/category.entity";
 import { Restaurant } from "./entities/restaurant.entity";
 import { CategoryRepository } from './repositories/category.repository';
 import { CoreOutput } from 'src/common/dto/output.dto';
+import { AllCategoriesOutput } from './dtos/all-categories.dto';
 
 @Injectable()
 export class RestaurantService {
@@ -86,6 +87,22 @@ export class RestaurantService {
     } catch (error) {
       return {ok: false, error: 'Cloud not create a restaurant'}
     }   
+  }
+
+  async allCategories(): Promise<AllCategoriesOutput> {
+    try {
+      const categories = await this.categoryRepository.find();
+      return {ok: true, categories};
+    } catch (error) {
+      return {
+        ok: false,
+        error: 'Could not load categories.'
+      }
+    }
+  }
+
+  countRestaurants(category: Category) {
+    return this.restaurantRepository.count({category});
   }
 
   private async getRestaurantIsItOwner (owner, restaurantId: number): Promise<CoreOutput> {
