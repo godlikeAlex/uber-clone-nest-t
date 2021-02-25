@@ -12,6 +12,7 @@ import { Category } from './entities/category.entity';
 import { CategoryInput, CategoryOutput } from './dtos/category.dto';
 import { RestaurantOutput, RestaurantInput } from './dtos/restaurant.dto';
 import { RestaurantsInput, RestaurantsOutput } from './dtos/restaurants.dto';
+import { SearchRestaurantOutput, SearchRestaurantInput } from './dtos/search-restaurant.dto';
 @Resolver(of => Restaurant)
 export class RestaurantResolver {
   constructor (
@@ -58,6 +59,13 @@ export class RestaurantResolver {
     @Args('input') restaurantsInput: RestaurantsInput
   ): Promise<RestaurantsOutput> {
     return this.restaurantService.allRestaurants(restaurantsInput);
+  }
+
+  @Query(returns => SearchRestaurantOutput)
+  async searchRestaurant(
+    @Args('input') searchRestaurantInput: SearchRestaurantInput
+  ): Promise<SearchRestaurantOutput> {
+    return this.restaurantService.searchRestaurant(searchRestaurantInput);
   }
 }
 

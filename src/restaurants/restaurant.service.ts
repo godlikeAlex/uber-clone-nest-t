@@ -1,9 +1,10 @@
+import { SearchRestaurantInput, SearchRestaurantOutput } from './dtos/search-restaurant.dto';
 import { DeleteRestaurantInput, DeleteRestaurantOutput } from './dtos/delete-restaurant.dto';
 import { EditRestaurantInput, EditRestaurantOutput } from './dtos/edit-restaurant.dto';
 import { Injectable, Query } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { User } from "src/users/entities/user.entity";
-import { Repository } from "typeorm";
+import { Like, Raw, Repository } from "typeorm";
 import { CreateRestaurantInput, CreateRestaurantOutput } from "./dtos/create-restaurant.dto";
 import { Category } from "./entities/category.entity";
 import { Restaurant } from "./entities/restaurant.entity";
@@ -172,6 +173,28 @@ export class RestaurantService {
       return {
         ok: true,
         results: restaurants,
+        totalPages: Math.ceil(totalItems / 25),
+        totalItems
+      }
+    } catch (error) {
+      return {
+        ok: false,
+        error: 'Cloud not load a restaurants.'
+      }
+    }
+  }
+
+  async searchRestaurant({query, page}: SearchRestaurantInput): Promise<SearchRestaurantOutput> {
+    try {
+      const [restaurants, totalItems] = await this.restaurantRepository.findAndCount({
+        where: {name: Raw(name => `${name} ILIKE '%${query}%'`)},
+        skip: (page - 1) * 25,
+        take: 25
+      });
+      
+      return {
+        ok: true,
+        restaurants,
         totalPages: Math.ceil(totalItems / 25),
         totalItems
       }
