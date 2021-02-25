@@ -9,6 +9,7 @@ import { User } from 'src/users/entities/user.entity';
 import { Role } from 'src/auth/role.decorator';
 import { EditRestaurantOutput, EditRestaurantInput } from './dtos/edit-restaurant.dto';
 import { Category } from './entities/category.entity';
+import { CategoryInput, CategoryOutput } from './dtos/category.dto';
 @Resolver(of => Restaurant)
 export class RestaurantResolver {
   constructor (
@@ -55,5 +56,10 @@ export class CategoryResolver {
   @Query(returns => AllCategoriesOutput)
   async allCategories(): Promise<AllCategoriesOutput> {
     return this.restaurantService.allCategories();
+  }
+  
+  @Query(returns => CategoryOutput)
+  category(@Args('input') categoryInput: CategoryInput): Promise<CategoryOutput> {
+    return this.restaurantService.findCategoryBySlug(categoryInput);
   }
 }
