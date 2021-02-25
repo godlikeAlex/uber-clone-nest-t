@@ -1,6 +1,6 @@
 import { DeleteRestaurantInput, DeleteRestaurantOutput } from './dtos/delete-restaurant.dto';
 import { EditRestaurantInput, EditRestaurantOutput } from './dtos/edit-restaurant.dto';
-import { Injectable } from "@nestjs/common";
+import { Injectable, Query } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { User } from "src/users/entities/user.entity";
 import { Repository } from "typeorm";
@@ -11,6 +11,8 @@ import { CategoryRepository } from './repositories/category.repository';
 import { CoreOutput } from 'src/common/dto/output.dto';
 import { AllCategoriesOutput } from './dtos/all-categories.dto';
 import { CategoryInput, CategoryOutput } from './dtos/category.dto';
+import { RestaurantInput, RestaurantOutput } from './dtos/restaurant.dto';
+import { RestaurantsInput, RestaurantsOutput } from './dtos/restaurants.dto';
 
 @Injectable()
 export class RestaurantService {
@@ -130,6 +132,53 @@ export class RestaurantService {
       return {
         ok: false,
         error: 'Cloud not load category.'
+      }
+    }
+  }
+
+  async findRestaurantById(
+    {id}: RestaurantInput
+  ): Promise<RestaurantOutput> {
+    try {
+      const restaurant = await this.restaurantRepository.findOne({id});
+
+      if (!restaurant) {
+        return {ok: false, error: 'Restaurant not found'}
+      }
+
+      console.log(restaurant);
+
+      return {
+        ok: true,
+        restaurant
+      }
+    } catch (error) {
+      return {
+        ok: false,
+        error: 'Cloud not load restaurant.'
+      }
+    }
+  }
+
+  async allRestaurants(
+    {page}: RestaurantsInput
+  ): Promise<RestaurantsOutput> {
+    try {
+      const [restaurants, totalItems] = await this.restaurantRepository.findAndCount({
+        skip: (page - 1) * 25,
+        take: 25,
+      });
+
+      return {
+        ok: true,
+        results: restaurants,
+        totalPages: Math.ceil(totalItems / 25),
+        totalItems
+      }
+    } catch (error) {
+      return {
+        ok: false,
+        error: 'Cloud not load a restaurants.'
       }
     }
   }

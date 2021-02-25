@@ -10,6 +10,8 @@ import { Role } from 'src/auth/role.decorator';
 import { EditRestaurantOutput, EditRestaurantInput } from './dtos/edit-restaurant.dto';
 import { Category } from './entities/category.entity';
 import { CategoryInput, CategoryOutput } from './dtos/category.dto';
+import { RestaurantOutput, RestaurantInput } from './dtos/restaurant.dto';
+import { RestaurantsInput, RestaurantsOutput } from './dtos/restaurants.dto';
 @Resolver(of => Restaurant)
 export class RestaurantResolver {
   constructor (
@@ -41,6 +43,21 @@ export class RestaurantResolver {
     @Args('input') deleteRestaurantInput: DeleteRestaurantInput
   ): Promise<DeleteRestaurantOutput> {
     return await this.restaurantService.deleteRestaurant(owner, deleteRestaurantInput);
+  }
+
+  @Query(returns => RestaurantOutput)
+  restaurant(
+    @Args('input') restaurantInput: RestaurantInput
+  ): Promise<RestaurantOutput> {
+    return this.restaurantService.findRestaurantById(restaurantInput);
+  }
+
+  
+  @Query(returns => RestaurantsOutput)
+  async restaurants(
+    @Args('input') restaurantsInput: RestaurantsInput
+  ): Promise<RestaurantsOutput> {
+    return this.restaurantService.allRestaurants(restaurantsInput);
   }
 }
 
