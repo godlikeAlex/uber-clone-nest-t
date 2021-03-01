@@ -1,3 +1,4 @@
+import { EditDishInput, EditDishOutput } from './dtos/edit-dish.dto';
 import { CreateDishInput, CreateDishOutput } from './dtos/create-dish.dto';
 import { SearchRestaurantInput, SearchRestaurantOutput } from './dtos/search-restaurant.dto';
 import { DeleteRestaurantInput, DeleteRestaurantOutput } from './dtos/delete-restaurant.dto';
@@ -16,6 +17,7 @@ import { CategoryInput, CategoryOutput } from './dtos/category.dto';
 import { RestaurantInput, RestaurantOutput } from './dtos/restaurant.dto';
 import { RestaurantsInput, RestaurantsOutput } from './dtos/restaurants.dto';
 import { Dish } from './entities/dish.entity';
+import { DeleteDishInput, DeleteDishOutput } from './dtos/delete-dish.dto';
 
 @Injectable()
 export class RestaurantService {
@@ -234,6 +236,60 @@ export class RestaurantService {
         error: 'Cloud not create a dish.'
       }
     }
+  }
+
+  async editDish(owner: User, editDishInput: EditDishInput): Promise<EditDishOutput> {
+    try {
+      const [error, haveAcessToEdit] = await this.checkUserOwnnsDishRestaurant(owner, editDishInput.dishId);
+
+      if (!haveAcessToEdit) return {ok: false, error}
+  
+      await this.dishRepository.save({
+        id: editDishInput.dishId,
+        ...editDishInput
+      });
+
+      return {
+        ok: true
+      }
+    } catch (error) {
+      return {
+        ok:false,
+        error: "Clound not delete dish."
+      }
+    }
+  }
+
+  async deleteDish(owner: User, {dishId}: DeleteDishInput): Promise<DeleteDishOutput> {
+    try {
+      const [error, haveAcessToDelete] = await this.checkUserOwnnsDishRestaurant(owner, dishId);
+
+      if (!haveAcessToDelete) return {ok: false, error}
+  
+      await this.dishRepository.delete(dishId);
+
+      return {
+        ok: true
+      }
+    } catch (error) {
+      return {
+        ok:false,
+        error: "Clound not delete dish."
+      }
+    }
+  }
+
+  private async checkUserOwnnsDishRestaurant (owner: User, dishId: number): Promise<[error?:string, haveAcess?:boolean]> {
+    const dish = await this.dishRepository.findOne(dishId, {
+      relations: ['restaurant']
+    });
+
+    if (!dish) return ["Dish not found.", false];
+
+    if (dish.restaurant.ownerId !== owner.id) return ["You can't edit a dish that you don't onwer", false]
+
+    return [null, true];
+
   }
 
   private async checkUserOwnsRestaurant (owner, restaurantId: number): Promise<[error?:string, restaurant?:Restaurant]> {
