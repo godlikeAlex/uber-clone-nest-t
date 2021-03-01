@@ -1,3 +1,4 @@
+import { CreateDishInput, CreateDishOutput } from './dtos/create-dish.dto';
 import { SearchRestaurantInput, SearchRestaurantOutput } from './dtos/search-restaurant.dto';
 import { DeleteRestaurantInput, DeleteRestaurantOutput } from './dtos/delete-restaurant.dto';
 import { EditRestaurantInput, EditRestaurantOutput } from './dtos/edit-restaurant.dto';
@@ -14,14 +15,17 @@ import { AllCategoriesOutput } from './dtos/all-categories.dto';
 import { CategoryInput, CategoryOutput } from './dtos/category.dto';
 import { RestaurantInput, RestaurantOutput } from './dtos/restaurant.dto';
 import { RestaurantsInput, RestaurantsOutput } from './dtos/restaurants.dto';
+import { Dish } from './entities/dish.entity';
 
 @Injectable()
 export class RestaurantService {
   constructor(
     @InjectRepository(Restaurant)
     private readonly restaurantRepository: Repository<Restaurant>,
+    @InjectRepository(Dish)
+    private readonly dishRepository: Repository<Dish>,
     @InjectRepository(Category)
-    private readonly categoryRepository: CategoryRepository
+    private readonly categoryRepository: CategoryRepository,
   ) {}
 
   async createRestaurant(
@@ -53,9 +57,9 @@ export class RestaurantService {
     editRestaurantInput: EditRestaurantInput
   ): Promise<EditRestaurantOutput> {
     try {
-      const verifyError = await this.getRestaurantIsItOwner(owner, editRestaurantInput.restaurantId);
+      const [error, restaurant] = await this.checkUserOwnsRestaurant(owner, editRestaurantInput.restaurantId);
       
-      if (verifyError) return verifyError;
+      if (error) return {ok: false, error};
 
       let category: Category = null;
       if (editRestaurantInput.categoryName) {
@@ -81,9 +85,9 @@ export class RestaurantService {
     {restaurantId}: DeleteRestaurantInput
   ): Promise<DeleteRestaurantOutput> { 
     try {
-      const verifyError = await this.getRestaurantIsItOwner(owner, restaurantId);
+      const [error] = await this.checkUserOwnsRestaurant(owner, restaurantId);
       
-      if (verifyError) return verifyError;
+      if (error) return {ok: false, error};
       
       await this.restaurantRepository.delete(restaurantId);
       
@@ -141,7 +145,9 @@ export class RestaurantService {
     {id}: RestaurantInput
   ): Promise<RestaurantOutput> {
     try {
-      const restaurant = await this.restaurantRepository.findOne({id});
+      const restaurant = await this.restaurantRepository.findOne({id}, {
+        relations: ['menu']
+      });
 
       if (!restaurant) {
         return {ok: false, error: 'Restaurant not found'}
@@ -206,13 +212,39 @@ export class RestaurantService {
     }
   }
 
-  private async getRestaurantIsItOwner (owner, restaurantId: number): Promise<CoreOutput> {
+  async createDish(owner: User, createDishInput: CreateDishInput): Promise<CreateDishOutput> {
+    try {
+      const [error, restaurant] = await this.checkUserOwnsRestaurant(owner, createDishInput.restaurantId); 
+
+      if (error) return {ok: false, error}; 
+      
+      await this.dishRepository.save(
+        this.dishRepository.create({
+          ...createDishInput,
+          restaurant
+        })
+      );
+
+      return {
+        ok: true,
+      }
+    } catch (error) {
+      return {
+        ok: false,
+        error: 'Cloud not create a dish.'
+      }
+    }
+  }
+
+  private async checkUserOwnsRestaurant (owner, restaurantId: number): Promise<[error?:string, restaurant?:Restaurant]> {
     const restaurant = await this.restaurantRepository.findOne({id: restaurantId});
 
-    if(!restaurant) return {ok: false, error: 'Restaurant not found.'};
+    if(!restaurant) return ["Restaurant not found.", null];
 
     if(owner.id !== restaurant.ownerId) {
-      return {ok: false, error: "You can't edit a restaurant that you don't onwer"}
+      return ["You can't edit a restaurant that you don't onwer", null];
     }
+
+    return [null, restaurant];
   }
 }
