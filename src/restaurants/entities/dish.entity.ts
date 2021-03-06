@@ -5,12 +5,12 @@ import { Field, InputType, ObjectType } from '@nestjs/graphql';
 import { IsNumber, IsString, Length } from 'class-validator';
 @InputType('DishChoiseInputType')
 @ObjectType()
-class DishChoise {
+export class DishChoise {
   @Field(type => String)
   name: string;
 
   @Field(type => Number, { nullable: true })
-  extra: number;
+  extra?: number;
 }
 
 @InputType('DishOptionInputType', {isAbstract: true})
