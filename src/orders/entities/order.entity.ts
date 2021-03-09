@@ -4,12 +4,12 @@ import { Field, Float, InputType, ObjectType, registerEnumType } from "@nestjs/g
 import { Column, Entity, JoinTable, ManyToMany, ManyToOne, OneToMany, RelationId } from "typeorm";
 import { CoreEntity } from "src/common/core.entity";
 import { User } from "src/users/entities/user.entity";
-import { Dish } from 'src/restaurants/entities/dish.entity';
 import { IsEnum, IsNumber } from 'class-validator';
 
 export enum OrderStatus {
   Pending = 'Pending',
   Cooking = 'Cooking',
+  Cooked = 'Cooked',
   PickedUp = 'PickedUp',
   Delivered = 'Delivered'
 }

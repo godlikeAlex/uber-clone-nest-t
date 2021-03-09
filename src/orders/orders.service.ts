@@ -1,15 +1,16 @@
-import { GetOrdersInput, GetOrdersOutput } from './dtos/get-orders.dto';
-import { Restaurant } from 'src/restaurants/entities/restaurant.entity';
-import { CreateOrderInput } from './dtos/create-order.dto';
-import { Injectable } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import { CreateDishOutput } from "src/restaurants/dtos/create-dish.dto";
-import { Repository } from "typeorm";
-import { Order } from "./entities/order.entity";
-import { User, UserRole } from 'src/users/entities/user.entity';
-import { OrderItem } from './entities/order-item.entity';
-import { Dish } from 'src/restaurants/entities/dish.entity';
+import {GetOrdersInput, GetOrdersOutput} from './dtos/get-orders.dto';
+import {Restaurant} from 'src/restaurants/entities/restaurant.entity';
+import {CreateOrderInput} from './dtos/create-order.dto';
+import {Injectable} from "@nestjs/common";
+import {InjectRepository} from "@nestjs/typeorm";
+import {CreateDishOutput} from "src/restaurants/dtos/create-dish.dto";
+import {Repository} from "typeorm";
+import {Order, OrderStatus} from "./entities/order.entity";
+import {User, UserRole} from 'src/users/entities/user.entity';
+import {OrderItem} from './entities/order-item.entity';
+import {Dish} from 'src/restaurants/entities/dish.entity';
 import {GetOrderInput, GetOrderOutput} from "./dtos/get-order.dto";
+import {EditOrderInput, EditOrderOutput} from "./dtos/edit-order.dto";
 
 @Injectable()
 export class OrdersService {
@@ -132,7 +133,7 @@ export class OrdersService {
     } catch (error) {
       return {
         ok: false,
-        error: "Cloudnot get orders."
+        error: "Cloud not get orders."
       }
     }
   }
@@ -148,11 +149,7 @@ export class OrdersService {
         }
       }
 
-      if (
-        order.customerId !== user.id &&
-        order.driverId !== user.id &&
-        order.restaurant.ownerId !== user.id
-      ) {
+      if (!this.canSeeOrder(user, order)) {
         return {
           ok: false,
           error: "You cant see that."
@@ -169,5 +166,67 @@ export class OrdersService {
         error: "Cloud not load order."
       }
     }
+  }
+
+  async editOrder(user: User, {id, status}: EditOrderInput): Promise<EditOrderOutput> {
+    try {
+      const order = await this.orders.findOne(id, {relations: ['restaurant']});
+
+      if (!order) {
+        return {
+          ok: false,
+          error: 'Order not found.'
+        }
+      }
+
+      if (!this.canSeeOrder(user, order)) {
+        return {
+          ok: false,
+          error: 'You cant see it'
+        }
+      }
+      let canEdit = true;
+      if (user.role === UserRole.Client) canEdit = false;
+
+      if (user.role === UserRole.Owner) {
+        if (status !== OrderStatus.Cooking && status !== OrderStatus.Cooked) canEdit = false;
+      }
+
+      if (user.role === UserRole.Delivery) {
+        if (status !== OrderStatus.PickedUp && status !== OrderStatus.Delivered) canEdit = false;
+      }
+
+      if (!canEdit) {
+        return {
+          ok: false,
+          error: "You can't do that."
+        }
+      }
+
+      await this.orders.save([{
+        id,
+        status
+      }])
+
+      return {
+        ok: true
+      }
+
+    } catch (e) {
+      return {
+        ok: false,
+        error: "Cloud not update order"
+      }
+    }
+  }
+
+  private canSeeOrder(user: User, order: Order): boolean {
+    let canSee = true;
+
+    if(user.role === UserRole.Client && order.customerId !== user.id) canSee = false;
+    if(user.role === UserRole.Delivery && order.driverId !== user.id) canSee = false;
+    if(user.role === UserRole.Owner && order.restaurant.ownerId !== user.id) canSee = false;
+
+    return canSee;
   }
 }
