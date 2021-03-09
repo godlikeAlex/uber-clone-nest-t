@@ -9,7 +9,7 @@ import { Order } from "./entities/order.entity";
 import { User, UserRole } from 'src/users/entities/user.entity';
 import { OrderItem } from './entities/order-item.entity';
 import { Dish } from 'src/restaurants/entities/dish.entity';
-
+import {GetOrderInput, GetOrderOutput} from "./dtos/get-order.dto";
 
 @Injectable()
 export class OrdersService {
@@ -17,7 +17,7 @@ export class OrdersService {
     @InjectRepository(Order)
     private readonly orders: Repository<Order>,
     @InjectRepository(OrderItem)
-    private readonly orederItems: Repository<OrderItem>,
+    private readonly orderItems: Repository<OrderItem>,
     @InjectRepository(Dish)
     private readonly dishes: Repository<Dish>,
     @InjectRepository(Restaurant)
@@ -73,7 +73,7 @@ export class OrdersService {
         }
         orderFinalPrice += dishFinalPrice;
 
-        const orderItem = await this.orederItems.save(this.orederItems.create({
+        const orderItem = await this.orderItems.save(this.orderItems.create({
           dish,
           options: item.options
         }));
@@ -104,11 +104,13 @@ export class OrdersService {
       let orders: Order[];
       if (user.role === UserRole.Client) {
         orders = await this.orders.find({where: {
-          customer: user
+          customer: user,
+          ...(status && {status})
         }});   
       } else if (user.role === UserRole.Delivery) {
         orders = await this.orders.find({where: {
-          driver: user
+          driver: user,
+          ...(status && {status})
         }});   
       } else if (user.role === UserRole.Owner) {
         const restaurants = await this.restaurants.find({
@@ -119,6 +121,9 @@ export class OrdersService {
         });   
   
         orders = restaurants.map(restaurant => restaurant.orders).flat(1);
+        if(status) {
+          orders = orders.filter(order => order.status === status);
+        }
       }
       return {
         ok: true,
@@ -128,6 +133,40 @@ export class OrdersService {
       return {
         ok: false,
         error: "Cloudnot get orders."
+      }
+    }
+  }
+
+  async getOrder(user: User, {id}: GetOrderInput): Promise<GetOrderOutput> {
+    try {
+      const order = await this.orders.findOne(id, {relations: ['restaurant']});
+
+      if (!order) {
+        return {
+          ok: false,
+          error: 'Order not found'
+        }
+      }
+
+      if (
+        order.customerId !== user.id &&
+        order.driverId !== user.id &&
+        order.restaurant.ownerId !== user.id
+      ) {
+        return {
+          ok: false,
+          error: "You cant see that."
+        }
+      }
+
+      return {
+        ok: true,
+        order
+      }
+    } catch (e) {
+      return {
+        ok: false,
+        error: "Cloud not load order."
       }
     }
   }

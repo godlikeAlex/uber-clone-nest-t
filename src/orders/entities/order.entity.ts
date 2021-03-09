@@ -28,6 +28,9 @@ export class Order extends CoreEntity {
   )
   customer?: User;
 
+  @RelationId((order: Order) => order.customer)
+  customerId: number;
+
   @Field(type => User, {nullable: true})
   @ManyToOne(
     type => User,
@@ -35,6 +38,9 @@ export class Order extends CoreEntity {
     {onDelete: 'SET NULL', nullable: true}
   )
   driver?: User;
+
+  @RelationId((order: Order) => order.driver)
+  driverId: number;
 
   @Field(type => Restaurant)
   @ManyToOne(
