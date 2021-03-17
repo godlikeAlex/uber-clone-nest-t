@@ -1,7 +1,7 @@
 import {GetOrdersInput, GetOrdersOutput} from './dtos/get-orders.dto';
 import {Restaurant} from 'src/restaurants/entities/restaurant.entity';
 import {CreateOrderInput} from './dtos/create-order.dto';
-import {Injectable} from "@nestjs/common";
+import {Inject, Injectable} from "@nestjs/common";
 import {InjectRepository} from "@nestjs/typeorm";
 import {CreateDishOutput} from "src/restaurants/dtos/create-dish.dto";
 import {Repository} from "typeorm";
@@ -11,6 +11,8 @@ import {OrderItem} from './entities/order-item.entity';
 import {Dish} from 'src/restaurants/entities/dish.entity';
 import {GetOrderInput, GetOrderOutput} from "./dtos/get-order.dto";
 import {EditOrderInput, EditOrderOutput} from "./dtos/edit-order.dto";
+import {NEW_PENDING_ORDER, PUB_SUB} from "../common/common.constants";
+import {PubSub} from "graphql-subscriptions";
 
 @Injectable()
 export class OrdersService {
@@ -22,7 +24,8 @@ export class OrdersService {
     @InjectRepository(Dish)
     private readonly dishes: Repository<Dish>,
     @InjectRepository(Restaurant)
-    private readonly restaurants: Repository<Restaurant>
+    private readonly restaurants: Repository<Restaurant>,
+    @Inject(PUB_SUB) private readonly pubSub: PubSub
   ) {}
 
   async createOrder(customer: User, {restaurantId, items}: CreateOrderInput): Promise<CreateDishOutput> {
@@ -82,12 +85,14 @@ export class OrdersService {
         orderItems.push(orderItem);
       };
 
-      await this.orders.save(this.orders.create({
+      const order = await this.orders.save(this.orders.create({
         customer,
         restaurant,
         total: orderFinalPrice,
         items: orderItems
       }));
+
+      await this.pubSub.publish(NEW_PENDING_ORDER, { pendingOrder: {order, ownerId: restaurant.ownerId} });
 
       return {
         ok: true
@@ -95,7 +100,7 @@ export class OrdersService {
     } catch (error) {
       return {
         ok: false,
-        error: 'Cloudnot create a order.'
+        error: 'Cloud not create a order.'
       }
     }
   }

@@ -9,13 +9,14 @@ import { OrdersService } from "./orders.service";
 import {GetOrderInput, GetOrderOutput} from "./dtos/get-order.dto";
 import {EditOrderInput, EditOrderOutput} from "./dtos/edit-order.dto";
 import {PubSub} from "graphql-subscriptions";
-
-const pubsub = new PubSub();
+import {Inject} from "@nestjs/common";
+import {NEW_PENDING_ORDER, PUB_SUB} from "../common/common.constants";
 
 @Resolver(of => Order)
 export class OrdersResolver {
   constructor(
-    private readonly oredersService: OrdersService
+    private readonly oredersService: OrdersService,
+    @Inject(PUB_SUB) private readonly pubSub: PubSub
   ) {}
 
   @Mutation(returns => CreateOrderOutput)
@@ -54,8 +55,14 @@ export class OrdersResolver {
     return this.oredersService.editOrder(user, editOrderInput);
   }
 
-  @Subscription(returns => String)
-  orderSubscription() {
-    return pubsub.asyncIterator('');
+  @Subscription(returns => Order, {
+    filter: ({pendingOrder: {ownerId}}, _, {user}) => {
+      return ownerId === user.id;
+    },
+    resolve: payload => payload.pendingOrder.order
+  })
+  @Role(['Owner'])
+  pendingOrder() {
+    return this.pubSub.asyncIterator(NEW_PENDING_ORDER);
   }
 }

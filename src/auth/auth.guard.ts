@@ -2,7 +2,6 @@ import { AllowedRoles } from './role.decorator';
 import { CanActivate, ExecutionContext, Injectable } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { GqlExecutionContext } from "@nestjs/graphql";
-import { User } from 'src/users/entities/user.entity';
 import {JwtService} from "../jwt/jwt.service";
 import {UsersService} from "../users/users.service";
 
