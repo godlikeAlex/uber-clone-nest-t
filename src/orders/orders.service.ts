@@ -13,6 +13,7 @@ import {GetOrderInput, GetOrderOutput} from "./dtos/get-order.dto";
 import {EditOrderInput, EditOrderOutput} from "./dtos/edit-order.dto";
 import {NEW_COOKED_ORDER, NEW_ORDER_UPDATE, NEW_PENDING_ORDER, PUB_SUB} from "../common/common.constants";
 import {PubSub} from "graphql-subscriptions";
+import {TakeOrderInput, TakeOrderOutput} from "./dtos/take-order.dto";
 
 @Injectable()
 export class OrdersService {
@@ -231,6 +232,42 @@ export class OrdersService {
       return {
         ok: false,
         error: "Cloud not update order"
+      }
+    }
+  }
+
+  async takeOrder(driver: User, {id}: TakeOrderInput): Promise<TakeOrderOutput> {
+    try {
+      const order = await this.orders.findOne(id);
+
+      if (!order) {
+        return {
+          ok: false,
+          error: 'ORDER NOT FOUND.'
+        }
+      }
+
+      if (order.driver) {
+        return {
+          ok: false,
+          error: 'This order all ready have a driver.'
+        }
+      }
+
+      await this.orders.save({
+        id: order.id,
+        driver
+      });
+
+      await this.pubSub.publish(NEW_ORDER_UPDATE, {orderUpdates: {...order, driver}});
+
+      return  {
+        ok: true
+      }
+    } catch (e) {
+      return  {
+        ok: false,
+        error: 'Cloud not update driver in the order'
       }
     }
   }

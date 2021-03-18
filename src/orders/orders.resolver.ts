@@ -12,6 +12,7 @@ import {PubSub} from "graphql-subscriptions";
 import {Inject} from "@nestjs/common";
 import {NEW_COOKED_ORDER, NEW_ORDER_UPDATE, NEW_PENDING_ORDER, PUB_SUB} from "../common/common.constants";
 import {OrderUpdatesInput} from "./dtos/order-updates.dto";
+import {TakeOrderInput, TakeOrderOutput} from "./dtos/take-order.dto";
 
 @Resolver(of => Order)
 export class OrdersResolver {
@@ -27,6 +28,15 @@ export class OrdersResolver {
     @Args('input') createOrderInput: CreateOrderInput
   ): Promise<CreateOrderOutput> {
     return this.oredersService.createOrder(customer, createOrderInput);
+  }
+
+  @Mutation(returns => TakeOrderOutput)
+  @Role(['Delivery'])
+  takeOrder(
+    @AuthUser() driver: User,
+    @Args('input') takeOrderInput: TakeOrderInput
+  ): Promise<TakeOrderOutput> {
+    return this.oredersService.takeOrder(driver, takeOrderInput);
   }
 
   @Query(returns => GetOrdersOutput)
@@ -79,7 +89,11 @@ export class OrdersResolver {
       { input }: {input: OrderUpdatesInput},
       { user }: {user: User}
     ) => {
-      if (order.driverId !== user.id && order.customerId !== user.id && order.restaurant.ownerId !== user.id) {
+      if (
+        order.driverId !== user.id &&
+        order.customerId !== user.id &&
+        order.restaurant.ownerId !== user.id
+      ) {
         return false;
       }
       return order.id === input.id;
