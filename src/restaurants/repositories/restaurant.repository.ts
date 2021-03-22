@@ -6,14 +6,17 @@ type FindAndPagenationParams = {
   page: number;
 }
 
-@EntityRepository()
+@EntityRepository(Restaurant)
 export class RestaurantRepository extends Repository<Restaurant> {
   async findWithPagenation({where, page}: FindAndPagenationParams) {
     const result = await this.findAndCount(
       {
         where: where || undefined,
         take: 25,
-        skip: (page - 1) * 25
+        skip: (page - 1) * 25,
+        order: {
+          isPromoted: 'DESC'
+        }
       }
     );
     

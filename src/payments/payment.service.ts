@@ -1,11 +1,12 @@
 import {Injectable} from "@nestjs/common";
 import {Payment} from "./entities/payment.entity";
 import {InjectRepository} from "@nestjs/typeorm";
-import {Repository} from "typeorm";
+import {LessThan, Repository} from "typeorm";
 import {User} from "../users/entities/user.entity";
 import {CreatePaymentInput, CreatePaymentOutput} from "./dto/create-payment.dto";
 import {Restaurant} from "../restaurants/entities/restaurant.entity";
 import {GetPaymentsOutput} from "./entities/get-payments.dto";
+import {Interval} from "@nestjs/schedule";
 
 
 @Injectable()
@@ -35,6 +36,12 @@ export class PaymentService {
         }
       }
 
+      const date = new Date();
+      date.setDate(date.getDate() + 7);
+
+      restaurant.isPromoted = true;
+      restaurant.promotedUntil = date;
+      await this.restaurants.save(restaurant);
       await this.payments.save(
         this.payments.create({
           transactionId,
@@ -65,6 +72,24 @@ export class PaymentService {
         ok: false,
         error: 'Cloud not get payments'
       }
+    }
+  }
+
+  @Interval(5000)
+  async checkPromotedRestaurants() {
+    let restaurants = await this.restaurants.find({
+      where: {
+        isPromoted: true,
+        promotedUntil: LessThan(new Date())
+      }
+    });
+
+    console.log(restaurants);
+
+    for (const restaurant of restaurants) {
+      restaurant.isPromoted = false;
+      restaurant.promotedUntil = null;
+      await this.restaurants.save(restaurant);
     }
   }
 }

@@ -6,24 +6,24 @@ import { EditRestaurantInput, EditRestaurantOutput } from './dtos/edit-restauran
 import { Injectable, Query } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { User } from "src/users/entities/user.entity";
-import { Like, Raw, Repository } from "typeorm";
+import { Raw, Repository } from "typeorm";
 import { CreateRestaurantInput, CreateRestaurantOutput } from "./dtos/create-restaurant.dto";
 import { Category } from "./entities/category.entity";
 import { Restaurant } from "./entities/restaurant.entity";
 import { CategoryRepository } from './repositories/category.repository';
-import { CoreOutput } from 'src/common/dto/output.dto';
 import { AllCategoriesOutput } from './dtos/all-categories.dto';
 import { CategoryInput, CategoryOutput } from './dtos/category.dto';
 import { RestaurantInput, RestaurantOutput } from './dtos/restaurant.dto';
 import { RestaurantsInput, RestaurantsOutput } from './dtos/restaurants.dto';
 import { Dish } from './entities/dish.entity';
 import { DeleteDishInput, DeleteDishOutput } from './dtos/delete-dish.dto';
+import {RestaurantRepository} from "./repositories/restaurant.repository";
 
 @Injectable()
 export class RestaurantService {
   constructor(
     @InjectRepository(Restaurant)
-    private readonly restaurantRepository: Repository<Restaurant>,
+    private readonly restaurantRepository: RestaurantRepository,
     @InjectRepository(Dish)
     private readonly dishRepository: Repository<Dish>,
     @InjectRepository(Category)
@@ -125,7 +125,10 @@ export class RestaurantService {
         {
           where: { category },
           take: 25,
-          skip: (page - 1) * 25
+          skip: (page - 1) * 25,
+          order: {
+            isPromoted: 'DESC'
+          }
         }
       );
       category.restaurants = restaurants;
@@ -173,9 +176,8 @@ export class RestaurantService {
     {page}: RestaurantsInput
   ): Promise<RestaurantsOutput> {
     try {
-      const [restaurants, totalItems] = await this.restaurantRepository.findAndCount({
-        skip: (page - 1) * 25,
-        take: 25,
+      const [restaurants, totalItems] = await this.restaurantRepository.findWithPagenation({
+        page
       });
 
       return {
@@ -185,6 +187,7 @@ export class RestaurantService {
         totalItems
       }
     } catch (error) {
+      console.log(error);
       return {
         ok: false,
         error: 'Cloud not load a restaurants.'
